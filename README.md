@@ -1,6 +1,22 @@
-![dotfile](dotfiles.png)
-
 # My personal dotfiles
+
+## Previews
+
+Fastfetch ofc
+
+![fastfetch output](assets/dotfiles1.png)
+
+Fzf-tab with preview
+
+![fzf-tab](assets/dotfiles2.png)
+
+Fzf-tab for yay
+
+![yay fzf-tab](assets/dotfiles3.png)
+
+Just random lt alias output
+
+![lt output](assets/dotfiles4.png)
 
 ## 🚀 Zsh setup:
 
