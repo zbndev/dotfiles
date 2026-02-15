@@ -1,0 +1,46 @@
+shell-integration = zsh
+
+cursor-style = bar
+cursor-style-blink = true
+
+font-family = JetBrains Mono Nerd Font
+font-size = 12
+font-feature = +calt
+
+theme = catppuccin-mocha
+
+window-theme = ghostty
+window-height = 35
+window-width = 130
+window-padding-x = 10
+window-padding-y = 10
+window-padding-balance = true
+window-decoration = true
+window-save-state = always
+window-title-font-family = "JetBrains Mono"
+
+gtk-single-instance = true
+confirm-close-surface = false 
+copy-on-select = clipboard
+scrollback-limit = 50000
+shell-integration-features = cursor,sudo,title
+selection-clear-on-copy = true
+
+adjust-cell-width = -1
+adjust-cell-height = 2
+
+mouse-hide-while-typing = true
+mouse-shift-capture = true
+
+keybind = ctrl+n=new_window
+keybind = super+r=reload_config
+
+working-directory = inherit
+
+clipboard-read = allow
+clipboard-write = allow
+
+focus-follows-mouse = false
+resize-overlay = always
+resize-overlay-position = top-left
+resize-overlay-duration = 750ms

@@ -1,0 +1,5 @@
+export HISTFILE="${HOME}/.zsh_history"
+export HISTCONTROL="ignoredups:ignorespace"
+export HISTSIZE="100000"
+export HISTFILESIZE="200000"
+export SAVEHIST="${HISTSIZE}"

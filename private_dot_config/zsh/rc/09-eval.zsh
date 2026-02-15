@@ -1,0 +1,5 @@
+eval "$(fzf --zsh)"
+eval "$(zoxide init --cmd cd zsh)"
+eval "$(atuin init zsh)"
+eval "$(thefuck --alias fuck)"
+eval "$(starship init zsh)"
