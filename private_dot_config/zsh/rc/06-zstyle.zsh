@@ -28,7 +28,7 @@ zstyle ':fzf-tab:complete:bat:*' fzf-preview 'bat --color=always --theme=base16 
 zstyle ':fzf-tab:complete:nvim:*' fzf-preview 'bat --color=always --theme=base16 $realpath'
 zstyle ':fzf-tab:complete:yay:*' fzf-preview \
   'if [[ "$group" == *"package"* ]]; then
-    (pacman -Qi $word || yay -Si $word) 2>/dev/null | bat --color=always --language=help --style=plain
+    (yay -Si $word) 2>/dev/null | bat --color=always --language=help
   elif [ -d "$realpath" ]; then
     eza -1 --color=always "$realpath"
   elif [ -f "$realpath" ]; then
