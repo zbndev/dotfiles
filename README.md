@@ -22,7 +22,6 @@ Just random lt alias output
 
 - ⌨️ Emacs mode _(for people without mental diseases)_ with ctrl + arrows, home/end buttons and ctrl+backspace/del
 - 🛠️ A bunch of useful plugins managed with Zinit
-  - zsh-syntax-highlighting
   - zsh-completions
   - zsh-autosuggestions
   - fzf-tab
