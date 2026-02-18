@@ -40,10 +40,6 @@ if exists fzf; then
   fi
 
   FZF_USERDATA="${HOME}/.local/share/fzf"
-
-  # Key bindings and autocompletion
-  . ${HOME}/.local/share/fzf/shell/key-bindings.zsh
-  . ${HOME}/.local/share/fzf/shell/completion.zsh
 fi
 
 if exists bat || exists batcat; then

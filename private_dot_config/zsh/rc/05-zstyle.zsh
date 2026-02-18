@@ -1,9 +1,7 @@
-WORDCHARS=${WORDCHARS//\/[&.;]/}
+WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
 zmodload -i zsh/complist
 
 autoload -Uz add-zsh-hook
-autoload -Uz vcs_info
-precmd () { vcs_info }
 
 # --- General Completion Behavior ---
 zstyle ':completion:*' use-cache on
@@ -16,7 +14,6 @@ zstyle ':completion:*' matcher-list \
 		'm:{a-zA-Z}={A-Za-z}' \
 		'+r:|[._-]=* r:|=*' \
 		'+l:|=*'
-zstyle ':vcs_info:*' formats ' %B%s-[%F{magenta}%f %F{yellow}%b%f]-'
 zstyle ':fzf-tab:*' fzf-flags --style=full --height=60% --pointer '>' \
                 --color 'pointer:green:bold,bg+:-1:,fg+:green:bold,info:blue:bold,marker:yellow:bold,hl:gray:bold,hl+:yellow:bold' \
                 --input-label ' Search ' --color 'input-border:blue,input-label:blue:bold' \

@@ -34,6 +34,8 @@ mouse-shift-capture = true
 
 keybind = ctrl+n=new_window
 keybind = super+r=reload_config
+keybind = super+enter=toggle_fullscreen
+keybind = ctrl+enter=unbind
 
 working-directory = inherit
 
