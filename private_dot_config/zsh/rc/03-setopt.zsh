@@ -22,8 +22,8 @@ setopt menu_complete    # Auto-select first completion match
 setopt list_packed      # Compact completion list
 
 # Correction
-setopt correct     # Correct commands
-setopt correct_all # Correct all arguments
+# setopt correct     # Correct commands
+# setopt correct_all # Correct all arguments
 
 # Globbing
 setopt extended_glob # Extended globbing
