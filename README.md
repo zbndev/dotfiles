@@ -22,6 +22,8 @@
 - **eza** - ls on steroids (like files icons)
 - **bat** - cat on steroids
 - **atuin** - upgrades your up arrow key
+- **zoxide** - better cd
+- **tlrc** - simpler analog for man command
 
 ### 🐧 System:
 
@@ -32,5 +34,5 @@ yay -S --needed \
   wl-clipboard cliphist inotify-tools app2unit \
   wireplumber trash-cli foot zsh fastfetch jq \
   adw-gtk-theme papirus-icon-theme qt5ct-kde qt6ct-kde \
-  ttf-jetbrains-mono-nerd thunar zoxide thefuck lazygit
+  ttf-jetbrains-mono-nerd thunar thefuck lazygit
 ```
