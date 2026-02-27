@@ -16,10 +16,20 @@
 
 ## 📦 Packages used:
 
+### 🦀 Cargo:
+
 - **starship** - minimalistic shell prompt
 - **eza** - ls on steroids (like files icons)
 - **bat** - cat on steroids
 - **atuin** - upgrades your up arrow key
-- **lazygit** - TUI for git
-- **thefuck** - corrects your mistakes
-- **foot** - just terminal
+
+### 🐧 System:
+
+```bash
+yay -S --needed caelestia-shell-git caelestia-cli-git hyprland \
+                  xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
+                  wl-clipboard cliphist inotify-tools app2unit \
+                  wireplumber trash-cli foot zsh fastfetch jq \
+                  adw-gtk-theme papirus-icon-theme qt5ct-kde qt6ct-kde \
+                  ttf-jetbrains-mono-nerd thunar zoxide thefuck lazygit
+```
