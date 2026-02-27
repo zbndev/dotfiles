@@ -1,204 +1,65 @@
 {
-  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-  /*
-  "modules": [
-    "title",
-    "separator",
-    "os",
-    "host",
-    "kernel",
-    "uptime",
-    //"packages",
-    "shell",
-    "display",
-    "de",
-    "wm",
-    "wmtheme",
-    "theme",
-    "icons",
-    "font",
-    "cursor",
-    "terminal",
-    "terminalfont",
-    "cpu",
-    "gpu",
-    "memory",
-    //"swap",
-    "disk",
-    //"localip",
-    "battery",
-    "poweradapter",
-    "locale",
-    "break",
-    "colors"
-  ],
-  */
-  "modules": [
-    "break",
-    /*
-     * OS
-     */
-    {
-      "type": "os",
-      "key": "OS   ",
-      "keyColor": "red",
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": null,
+    "display": {
+        "separator": "  ",
+        "color": "white",
+        "constants": ["\u001b[37m", "\u001b[38;5;16m", "\u001b[38;5;17m", "\u001b[38;5;18m"]
     },
-    {
-      "type": "kernel",
-      "key": " ├  ",
-      "keyColor": "red",
-    },
-    {
-      "type": "packages",
-      "key": " └ 󰏖 ",
-      "keyColor": "red",
-    },
-    "break",
-    /*
-     * Terminal Emulator
-     */
-    {
-      "type": "terminal",
-      "key": "TE   ",
-      "keyColor": "magenta",
-    },
-    {
-      "type": "terminalfont",
-      "key": " ├  ",
-      "keyColor": "magenta",
-    },
-    {
-      "type": "shell",
-      "key": " └  ",
-      "keyColor": "magenta",
-    },
-    "break",
-    /*
-     * Desktop Environment
-     */
-    {
-      "type": "de",
-      "key": "DE   ",
-      "keyColor": "green",
-    },
-    {
-      "type": "wm",
-      "key": " ├  ",
-      "keyColor": "green",
-    },
-    {
-      "type": "wmtheme",
-      "key": " ├ 󰓸 ",
-      "keyColor": "green",
-    },
-    {
-      "type": "icons",
-      "key": " ├ 󰀻 ",
-      "keyColor": "green",
-    },
-    {
-      "type": "cursor",
-      "key": " └ 󰆿 ",
-      "keyColor": "green",
-    },
-    "break",
-    /*
-     * PC
-     */
-    {
-      "type": "host",
-      "format": "{2}",
-      "key": "PC   ",
-      "keyColor": "yellow",
-    },
-    {
-      "type": "cpu",
-      "format": "{1} ({3}) @ {7} GHz",
-      "key": " ├  ",
-      "keyColor": "yellow",
-    },
-    {
-      "type": "gpu",
-      "format": "{1} {2} @ {12} GHz",
-      "key": " ├ 󰢮 ",
-      "keyColor": "yellow",
-    },
-    {
-      "type": "memory",
-      "key": " ├  ",
-      "keyColor": "yellow",
-    },
-    {
-      "type": "swap",
-      "key": " ├ 󰓡 ",
-      "keyColor": "yellow",
-    },
-    /*{
-        "type": "battery",
-        "key": " ├  ",
-        "keyColor": "yellow"
-    },
-    {
-        "type": "poweradapter",
-        "key": " ├  ",
-        "keyColor": "yellow"
-    },
-    {
-        "type": "localip",
-        "key": " ├ 󰩟 ",
-        "keyColor": "yellow"
-    },
-    {
-        "type": "locale",
-        "key": " ├  ",
-        "keyColor": "yellow"
-    },*/
-    {
-      "type": "disk",
-      "key": " ├  ", // 󰋊
-      "keyColor": "yellow",
-      "showReadOnly": false,
-      "showExternal": true,
-      "showSubvolumes": false,
-    },
-    {
-      "type": "monitor",
-      "key": " └  ",
-      "keyColor": "yellow",
-    },
-    "break",
-    "colors",
-  ],
-  "display": {
-    "separator": " ➜  ", // Separator between keys and values
-    "key": {
-      "type": "string", // string, icon, both, or none
-    },
-    "bar": {
-      "width": 10, // Width of percentage bars
-      "char": {
-        "elapsed": "■", // Character for elapsed portion
-      },
-      "charTotal": "-", // Character for total portion
-    },
-    "percent": {
-      "type": 9, // 1=number, 2=bar, 3=both, 9=colored number
-      /*, "color": {
-        "green": "green",
-        "yellow": "light_yellow",
-        "red": "light_red"
-      }*/
-    },
-  },
-  "logo": {
-    //"source": "~/.config/fastfetch/logo.png",
-    "type": "auto",
-    "position": "left",
-    "width": 20,
-    "padding": {
-      "top": 1,
-      "left": 0,
-      "right": 2,
-    },
-  },
+    "modules": [
+        "break",
+        {
+            "type": "custom",
+            "key": "╭───────────────────────────────────╮"
+        },
+        {
+            "type": "kernel",
+            "key": "│ {$2}{$1}  kernel",
+            "format": "{$2}{release>22}{$1} │"
+        },
+        {
+            "type": "command",
+            "key": "│   uptime",
+            "text": "uptime -p | cut -d ' ' -f 2-",
+            "format": "{>22} │"
+        },
+        {
+            "type": "shell",
+            "key": "│ {$2}{$1}  shell ",
+            "format": "{$2}{pretty-name>22}{$1} │"
+        },
+        {
+            "type": "command",
+            "key": "│ {$3}{$1}  mem   ",
+            "text": "free -m | awk 'NR==2{printf \"%.2f GiB / %.2f GiB\",$3/1024,$2/1024}'",
+            "format": "{$3}{>22}{$1} │"
+        },
+        {
+            "type": "packages",
+            "key": "│   pkgs  ",
+            "format": "{all>22} │"
+        },
+        {
+            "type": "command",
+            "key": "│ {$2}{$1}  user  ",
+            "text": "echo $USER",
+            "format": "{$2}{>22}{$1} │"
+        },
+        {
+            "type": "command",
+            "key": "│   hname ",
+            "text": "hostnamectl hostname",
+            "format": "{>22} │"
+        },
+        {
+            "type": "os",
+            "key": "│ {$4}󰻀{$1}  distro",
+            "format": "{$4}{pretty-name>22}{$1} │"
+        },
+        {
+            "type": "custom",
+            "key": "╰───────────────────────────────────╯"
+        },
+        "break"
+    ]
 }

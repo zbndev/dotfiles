@@ -1,22 +1,6 @@
 # My personal dotfiles
 
-## Previews
-
-Fastfetch ofc
-
-![fastfetch output](assets/dotfiles1.png)
-
-Fzf-tab with preview
-
-![fzf-tab](assets/dotfiles2.png)
-
-Fzf-tab for yay
-
-![yay fzf-tab](assets/dotfiles3.png)
-
-Just random lt alias output
-
-![lt output](assets/dotfiles4.png)
+![screenshot](assets/screenshot.png)
 
 ## 🚀 Zsh setup:
 
@@ -38,4 +22,4 @@ Just random lt alias output
 - **atuin** - upgrades your up arrow key
 - **lazygit** - TUI for git
 - **thefuck** - corrects your mistakes
-- **ghostty terminal** - just terminal
+- **foot** - just terminal
