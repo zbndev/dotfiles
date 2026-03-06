@@ -1,9 +1,9 @@
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 
-if [ -n "${GHOSTTY_RESOURCES_DIR}" ]; then
+if [ -n "${KITTY_INSTALLATION_DIR}" ]; then
   builtin source \
-    "${GHOSTTY_RESOURCES_DIR}/shell-integration/zsh/ghostty-integration"
+    "${KITTY_INSTALLATION_DIR}/shell-integration/zsh/"
 fi
 
 eval $(dircolors ~/.dircolors)
