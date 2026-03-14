@@ -33,6 +33,6 @@ yay -S --needed \
   xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
   wl-clipboard cliphist inotify-tools app2unit \
   wireplumber trash-cli kitty zsh fastfetch jq \
-  adw-gtk-theme papirus-icon-theme qt5ct-kde qt6ct-kde \
+  adw-gtk-theme papirus-icon-theme qtengine-git \
   ttf-jetbrains-mono-nerd thunar thefuck lazygit
 ```
