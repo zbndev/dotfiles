@@ -22,6 +22,7 @@ zinit snippet OMZP::git
 zinit snippet OMZP::sudo
 zinit snippet OMZP::archlinux
 zinit snippet OMZP::command-not-found
+zinit snippet OMZP::docker
 
 zinit light hlissner/zsh-autopair
 zinit light MichaelAquilina/zsh-you-should-use
