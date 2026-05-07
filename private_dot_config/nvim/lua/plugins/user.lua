@@ -86,4 +86,17 @@ return {
     name = "catppuccin",
     priority = 1000,
   },
+  {
+    "olimorris/codecompanion.nvim",
+    version = "^19.0.0",
+    opts = {},
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
+    },
+  },
+  {
+    "MeanderingProgrammer/render-markdown.nvim",
+    ft = { "markdown", "codecompanion" },
+  },
 }

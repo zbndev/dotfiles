@@ -25,7 +25,6 @@ zinit snippet OMZP::command-not-found
 zinit snippet OMZP::docker
 
 zinit light hlissner/zsh-autopair
-zinit light MichaelAquilina/zsh-you-should-use
 zinit light zdharma-continuum/fast-syntax-highlighting
 
 typeset -U fpath FPATH
