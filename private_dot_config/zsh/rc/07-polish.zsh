@@ -48,6 +48,10 @@ fi
 
 if exists gpgconf; then
   export GPG_TTY=$(tty)
-  export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
-  gpgconf --launch gpg-agent
+  if [[ -z "$SSH_AUTH_SOCK" ]]; then
+    export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+  fi
+  if [[ ! -S "${SSH_AUTH_SOCK:-}" ]]; then
+    gpgconf --launch gpg-agent
+  fi
 fi

@@ -13,10 +13,13 @@ mark_prompt_start() {
 precmd_functions+=(mark_prompt_start)
 
 
+# Turbo mode: all plugins load async after prompt renders
+zinit ice wait lucid
 zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-autosuggestions
 zinit light Aloxaf/fzf-tab
 
+zinit ice wait lucid
 zinit snippet OMZL::git.zsh
 zinit snippet OMZP::git
 zinit snippet OMZP::sudo
@@ -24,6 +27,7 @@ zinit snippet OMZP::archlinux
 zinit snippet OMZP::command-not-found
 zinit snippet OMZP::docker
 
+zinit ice wait lucid
 zinit light hlissner/zsh-autopair
 zinit light zdharma-continuum/fast-syntax-highlighting
 

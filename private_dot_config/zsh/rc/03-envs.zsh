@@ -1,3 +1,5 @@
+typeset -U PATH MANPATH
+
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 
@@ -23,8 +25,8 @@ export GOTELEMETRY="off"
 export GOPROXY="direct"
 export GOTOOLCHAIN="local"
 
-[ -d "${HOME}/.cargo/bin" ] && export PATH="${HOME}/.cargo/bin:${PATH}"
 [ -e "${HOME}/.cargo/env" ] && source "${HOME}/.cargo/env"
+[ -d "${HOME}/.cargo/bin" ] && export PATH="${HOME}/.cargo/bin:${PATH}"
 
 export NPM_PACKAGES="${HOME}/.local/lib/node_modules"
 export PATH="${PATH}:${NPM_PACKAGES}/bin:${HOME}/.local/bin"

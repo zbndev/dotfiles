@@ -37,4 +37,3 @@ zstyle ':fzf-tab:complete:systemctl-*:*' fzf-preview 'systemctl status $word'
 # --- The "No Duplicates" Rule ---
 zstyle ':completion:*:*:(pacman|yay):*' ignore-line other
 
-export ZLS_COLORS=$LS_COLORS
