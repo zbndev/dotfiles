@@ -27,7 +27,7 @@ zinit snippet OMZP::archlinux
 zinit snippet OMZP::command-not-found
 zinit snippet OMZP::docker
 
-zinit ice wait lucid
+zinit ice wait lucid atload"bindkey '^H' backward-kill-word"
 zinit light hlissner/zsh-autopair
 zinit light zdharma-continuum/fast-syntax-highlighting
 
