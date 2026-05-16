@@ -1,4 +1,4 @@
-WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+WORDCHARS=${WORDCHARS//[-.\/]/}
 zmodload -i zsh/complist
 
 autoload -Uz add-zsh-hook
