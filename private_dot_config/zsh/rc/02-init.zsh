@@ -1,11 +1,11 @@
+if [[ -f ~/.local/state/caelestia/sequences.txt ]]; then
+  /usr/bin/cat ~/.local/state/caelestia/sequences.txt
+fi
+
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 [ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"
 [ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 source "${ZINIT_HOME}/zinit.zsh"
-
-if [[ -f ~/.local/state/caelestia/sequences.txt ]]; then
-  /usr/bin/cat ~/.local/state/caelestia/sequences.txt
-fi
 
 mark_prompt_start() {
   printf "\e]133;A\e\\"
