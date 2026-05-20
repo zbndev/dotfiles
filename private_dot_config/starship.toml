@@ -46,48 +46,48 @@ $os\
 $battery\
 $time"""
 
-palette = "catppuccin_mocha"
+palette = "kanagawa_dragon"
 
 [character]
-success_symbol = "[[󰄛](green) ➜](peach)"
-error_symbol = "[[󰄛](red) ➜](peach)"
+success_symbol = "[[󰄛](green) ➜](yellow)"
+error_symbol = "[[󰄛](red) ➜](yellow)"
 
 [directory]
 truncation_length = 8
 read_only = " 󰌾"
 truncation_symbol = '…/'
-style = 'bold lavender'
+style = 'bold purple'
 
 [git_state]
 format = '[\($state( $progress_current of $progress_total)\)]($style) '
-rebase = '[rebasing](bold maroon)'
-merge = '[merging](bold yellow)'
+rebase = '[rebasing](bold red)'
+merge = '[merging](bold brightYellow)'
 revert = '[reverting](bold blue)'
-cherry_pick = '[picking](bold red)'
-bisect = '[bisecting](bold red)'
+cherry_pick = '[picking](bold brightRed)'
+bisect = '[bisecting](bold brightRed)'
 am = '[applying](bold green)'
-am_or_rebase = '[applying/rebasing](bold yellow)'
+am_or_rebase = '[applying/rebasing](bold brightYellow)'
 
 [git_status]
 # format = '($all_status$ahead_behind )'
 format = "([⎪$ahead_behind$staged$modified$untracked$renamed$deleted$conflicted$stashed⎥]($style))"
 style = '8'
-up_to_date = '[](teal)'
+up_to_date = '[](brightCyan)'
 untracked = '[.](surface1)'
-conflicted = '[#](maroon)'
+conflicted = '[#](red)'
 ahead = '[⇡│[${count}](bold white)│](green)'
-behind = '[⇣│[${count}](bold white)│](peach)'
-diverged = '[⇕ ▴┤[${ahead_count}](regular white)│▿┤[${behind_count}](regular white)│](red)'
-stashed = '[^](peach)'
-modified = '[*](sky)'
+behind = '[⇣│[${count}](bold white)│](yellow)'
+diverged = '[⇕ ▴┤[${ahead_count}](regular white)│▿┤[${behind_count}](regular white)│](brightRed)'
+stashed = '[^](yellow)'
+modified = '[*](cyan)'
 staged = '[+┤[$count](bold white)│](blue)'
-renamed = '[»](yellow)'
-deleted = '[x](pink)'
+renamed = '[»](brightYellow)'
+deleted = '[x](red)'
 
 [git_branch]
 format = '[$symbol$branch(:$remote_branch)]($style)'
 symbol = ''
-style = 'bold mauve'
+style = 'bold purple'
 truncation_length = 11
 truncation_symbol = '⋯'
 ignore_branches = []
@@ -102,17 +102,17 @@ tag_symbol = ''
 [git_metrics]
 disabled = false
 added_style = 'surface0'
-deleted_style = 'maroon'
+deleted_style = 'red'
 format = '([+$added]($added_style))([-$deleted]($deleted_style)) '
 
 [lua]
 format = " [lua](italic) [${symbol}${version}]($style)"
 version_format = "${raw}"
 symbol = "⨀ "
-style = "bold bright-yellow"
+style = "bold brightYellow"
 
 [nodejs]
-format = " [node](italic) [◫ ($version)](bold bright-green)"
+format = " [node](italic) [◫ ($version)](bold green)"
 version_format = "${raw}"
 detect_files = ["package-lock.json", "yarn.lock"]
 detect_folders = ["node_modules"]
@@ -120,7 +120,7 @@ detect_extensions = []
 
 [golang]
 format = '[$symbol($version )]($style)'
-style = 'sky'
+style = 'cyan'
 symbol = ' '
 
 [python]
@@ -130,12 +130,12 @@ symbol = ' '
 
 [rust]
 format = '[$symbol($version )]($style)'
-style = 'peach'
+style = 'yellow'
 symbol = ' '
 
 [terraform]
 format = '[$symbol$workspace]($style)'
-style = 'lavender'
+style = 'purple'
 symbol = ' '
 
 [docker_context]
@@ -144,7 +144,7 @@ format = " docker [$symbol$context]($style)"
 
 [custom.hugo]
 format = '[$symbol($output )]($style)'
-style = 'pink'
+style = 'red'
 symbol = ' '
 command = "hugo version | cut -d ' ' -f2 | cut -d '+' -f1"
 when = "test -f $(git rev-parse --show-toplevel)/config/_default/config.*"
@@ -176,30 +176,16 @@ Debian = "󰣚"
 Redhat = "󱄛"
 RedHatEnterprise = "󱄛"
 
-[palettes.catppuccin_mocha]
-rosewater = "#f5e0dc"
-flamingo = "#f2cdcd"
-pink = "#f5c2e7"
-mauve = "#cba6f7"
-red = "#f38ba8"
-maroon = "#eba0ac"
-peach = "#fab387"
-yellow = "#f9e2af"
-green = "#a6e3a1"
-teal = "#94e2d5"
-sky = "#89dceb"
-sapphire = "#74c7ec"
-blue = "#89b4fa"
-lavender = "#b4befe"
-text = "#cdd6f4"
-subtext1 = "#bac2de"
-subtext0 = "#a6adc8"
-overlay2 = "#9399b2"
-overlay1 = "#7f849c"
-overlay0 = "#6c7086"
-surface2 = "#585b70"
+[palettes.kanagawa_dragon]
+red = "#c4746e"
+purple = "#a292a3"
+brightRed = "#e46876"
+yellow = "#E6C384"
+brightYellow = "#c4b28a"
+green = "#87a987"
+brightCyan = "#7aa89f"
+cyan = "#8ea4a2"
+blue = "#7FB4CA"
 surface1 = "#45475a"
 surface0 = "#313244"
-base = "#1e1e2e"
-mantle = "#181825"
-crust = "#11111b"
+white = "#c5c9c5"
