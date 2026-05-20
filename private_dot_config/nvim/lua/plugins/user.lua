@@ -82,9 +82,7 @@ return {
     end,
   },
   {
-    "catppuccin/nvim",
-    name = "catppuccin",
-    priority = 1000,
+    "rebelot/kanagawa.nvim",
   },
   {
     "olimorris/codecompanion.nvim",
@@ -98,5 +96,19 @@ return {
   {
     "MeanderingProgrammer/render-markdown.nvim",
     ft = { "markdown", "codecompanion" },
+  },
+  {
+    "eero-lehtinen/oklch-color-picker.nvim",
+    event = "VeryLazy",
+    version = "*",
+    keys = {
+      {
+        "<leader>v",
+        function() require("oklch-color-picker").pick_under_cursor() end,
+        desc = "Color pick under cursor",
+      },
+    },
+    ---@type oklch.Opts
+    opts = {},
   },
 }
