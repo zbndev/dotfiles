@@ -29,7 +29,7 @@ export GOTOOLCHAIN="local"
 [ -d "${HOME}/.cargo/bin" ] && export PATH="${HOME}/.cargo/bin:${PATH}"
 
 export NPM_PACKAGES="${HOME}/.local/lib/node_modules"
-export PATH="${PATH}:${NPM_PACKAGES}/bin:${HOME}/.local/bin"
+export PATH="${PATH}:${NPM_PACKAGES}/bin:${HOME}/.local/bin:${HOME}/.cache/.bun/bin"
 export MANPATH="${MANPATH-$(manpath)}:${NPM_PACKAGES}/share/man"
 
 export ZLS_COLORS=$LS_COLORS
