@@ -4,47 +4,55 @@ add_newline = true
 scan_timeout = 50
 command_timeout = 1000
 follow_symlinks = true
+continuation_prompt = '[∙](surface1) '
 
 format = '$character$directory'
-# right_format = '$terraform$c$zig$odin$golang$rust$ruby$python${custom.hugo}([\[](#49443C)$git_state$git_status$git_metrics$git_branch$git_commit[\]](#49443C))$battery'
-
 right_format = """
 $kubernetes\
-$git_branch\
-$git_commit\
-$git_state\
-$git_status\
-$hg_branch\
-$pijul_channel\
+$vcs\
 $docker_context\
 $package\
 $c\
+$cpp\
 $cmake\
+$xmake\
 $dotnet\
 $golang\
 $helm\
 $java\
 $kotlin\
+$gradle\
+$maven\
 $lua\
+$fennel\
 $nim\
 $nodejs\
+$bun\
+$deno\
 $perl\
 $php\
 $python\
 $rust\
 $scala\
 $swift\
+$fortran\
+$gleam\
+$odin\
+$mojo\
+$solidity\
+$typst\
+$quarto\
+$pixi\
+$mise\
 $terraform\
 $conda\
 $meson\
+$direnv\
 $memory_usage\
 $aws\
 $gcloud\
 $custom\
-$status\
-$os\
-$battery\
-$time"""
+$status"""
 
 palette = "kanagawa_dragon"
 
@@ -58,6 +66,43 @@ read_only = " 󰌾"
 truncation_symbol = '…/'
 style = 'bold purple'
 
+# Uncomment and customize for your directory abbreviations:
+# [directory.substitutions]
+# "~/projects" = "mpp"
+# "~/work" = "wp"
+
+[vcs]
+order = [
+    "git",
+    "hg",
+    "pijul",
+    "fossil",
+]
+disabled = false
+fossil_modules = "$fossil_branch$fossil_metrics"
+git_modules = "$git_branch$git_commit$git_state$git_metrics$git_status"
+hg_modules = "$hg_branch$hg_state"
+pijul_modules = "$pijul_channel"
+
+[vcsh]
+symbol = ""
+style = "bold yellow"
+format = "vcsh [$symbol$repo]($style) "
+disabled = false
+
+[vlang]
+format = "via [$symbol($version )]($style)"
+version_format = "v${raw}"
+symbol = "V "
+style = "blue bold"
+disabled = false
+detect_extensions = ["v"]
+detect_files = [
+    "v.mod",
+    "vpkg.json",
+    ".vpkg-lock.json",
+]
+
 [git_state]
 format = '[\($state( $progress_current of $progress_total)\)]($style) '
 rebase = '[rebasing](bold red)'
@@ -69,8 +114,7 @@ am = '[applying](bold green)'
 am_or_rebase = '[applying/rebasing](bold brightYellow)'
 
 [git_status]
-# format = '($all_status$ahead_behind )'
-format = "([⎪$ahead_behind$staged$modified$untracked$renamed$deleted$conflicted$stashed⎥]($style))"
+format = "([⎪$ahead_behind$staged$modified$untracked$renamed$deleted$conflicted$stashed$typechanged⎥]($style))"
 style = '8'
 up_to_date = '[](brightCyan)'
 untracked = '[.](surface1)'
@@ -83,6 +127,18 @@ modified = '[*](cyan)'
 staged = '[+┤[$count](bold white)│](blue)'
 renamed = '[»](brightYellow)'
 deleted = '[x](red)'
+typechanged = '[↺](yellow)'
+
+# Fine-grained worktree/index status (requires starship v1.25.0+):
+# Uncomment and add $worktree_modified etc. to format string above to enable.
+# worktree_added = '[+](green)'
+# worktree_deleted = '[x](red)'
+# worktree_modified = '[*](cyan)'
+# worktree_typechanged = '[↺](yellow)'
+# index_added = '[A](green)'
+# index_deleted = '[D](red)'
+# index_modified = '[M](blue)'
+# index_typechanged = '[T](yellow)'
 
 [git_branch]
 format = '[$symbol$branch(:$remote_branch)]($style)'
@@ -101,9 +157,11 @@ tag_symbol = ''
 
 [git_metrics]
 disabled = false
-added_style = 'surface0'
+added_style = 'bold green'
 deleted_style = 'red'
 format = '([+$added]($added_style))([-$deleted]($deleted_style)) '
+# Prevents slow metric calculation in repos with submodules:
+# ignore_submodules = true
 
 [lua]
 format = " [lua](italic) [${symbol}${version}]($style)"
@@ -112,11 +170,12 @@ symbol = "⨀ "
 style = "bold brightYellow"
 
 [nodejs]
-format = " [node](italic) [◫ ($version)](bold green)"
+format = " [node](italic) [⬡ ($version)](bold green)"
 version_format = "${raw}"
-detect_files = ["package-lock.json", "yarn.lock"]
-detect_folders = ["node_modules"]
-detect_extensions = []
+
+[bun]
+format = " [bun](italic) [$symbol($version)](bold yellow)"
+version_format = "${raw}"
 
 [golang]
 format = '[$symbol($version )]($style)'
@@ -147,34 +206,23 @@ format = '[$symbol($output )]($style)'
 style = 'red'
 symbol = ' '
 command = "hugo version | cut -d ' ' -f2 | cut -d '+' -f1"
-when = "test -f $(git rev-parse --show-toplevel)/config/_default/config.*"
+when = "ls $(git rev-parse --show-toplevel 2>/dev/null)/config/_default/config.* >/dev/null 2>&1"
 require_repo = true
 
-[os]
-format = " [$symbol]($style)"
-style = "bold blue"
+[kubernetes]
+detect_env_vars = ['KUBECONFIG']
 disabled = false
 
-[os.symbols]
-Windows = "󰍲"
-Ubuntu = "󰕈"
-SUSE = ""
-Raspbian = "󰐿"
-Mint = "󰣭"
-Macos = ""
-Manjaro = ""
-Linux = "󰌽"
-Gentoo = "󰣨"
-Fedora = "󰣛"
-Alpine = ""
-Amazon = ""
-Android = ""
-Arch = "󰣇"
-Artix = "󰣇"
-CentOS = ""
-Debian = "󰣚"
-Redhat = "󱄛"
-RedHatEnterprise = "󱄛"
+[gcloud]
+detect_env_vars = ['CLOUDSDK_CONFIG', 'GOOGLE_APPLICATION_CREDENTIALS']
+
+[status]
+format = '[$symbol$status]($style) '
+success_style = 'green'
+failure_style = 'bold red'
+pipestatus = true
+pipestatus_format = '[$pipestatus]($style)'
+pipestatus_separator = '|'
 
 [palettes.kanagawa_dragon]
 red = "#c4746e"
