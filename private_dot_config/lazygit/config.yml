@@ -4,7 +4,7 @@ gui:
   screenMode: normal # one of 'normal' | 'half' | 'full' default is 'normal'
   scrollHeight: 2  # how many lines you scroll by
   scrollPastBottom: true  # enable scrolling past the bottom
-  sidePanelWidth: 0.2  # number from 0 to 1
+  sidePanelWidth: 0.3333  # number from 0 to 1
   expandFocusedSidePanel: true
   mainPanelSplitMode: flexible # one of 'horizontal' | 'flexible' | 'vertical'
   language: en # one of 'auto' | 'en' | 'zh' | 'pl' | 'nl' | 'ja' | 'ko' | 'ru'
@@ -54,7 +54,7 @@ gui:
   commandLogSize: 8
   splitDiff: auto # one of 'auto' | 'always'
   skipRewordInEditorWarning: false  # for skipping the confirmation before launching the reword editor
-  border: single # one of 'single' | 'double' | 'rounded' | 'hidden'
+  border: rounded # one of 'single' | 'double' | 'rounded' | 'hidden'
   notARepository: quit
   branchColorPatterns:
     ^feature/: '#11aaff' # use a light blue for branches beginning with 'docs/'
@@ -65,8 +65,28 @@ git:
     - colorArg: always
       useConfig: false
       pager: delta --dark --paging=never
+  commit:
+    signOff: true
+  merging:
+    manualCommit: false
+    args: ""
   log:
     order: topo-order
     showGraph: when-maximised
     showWholeGraph: false
     parseEmoji: false
+  skipHookPrefix: WIP
+  mainBranches: [master, main]
+  autoFetch: true
+  autoRefresh: true
+  fetchAll: true
+  branchLogCmd: "git log --graph --color=always --abbrev-commit --decorate --date=relative --pretty=medium {{branchName}} --"
+  overrideGpg: true
+  allBranchesLogCmds:
+    - git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium
+refresher:
+  refreshInterval: 10
+  fetchInterval: 60
+update:
+  method: prompt
+  days: 14

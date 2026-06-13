@@ -4,8 +4,6 @@ setopt pushd_ignore_dups # Don't push duplicates
 setopt pushdminus        # Exchange + and - for pushd/popd
 
 # History
-setopt appendhistory        # Append to history file
-setopt sharehistory         # Share history between sessions
 setopt hist_ignore_space    # Ignore commands starting with space
 setopt hist_ignore_all_dups # Remove all duplicates
 setopt hist_save_no_dups    # Don't save duplicates
@@ -13,7 +11,6 @@ setopt hist_ignore_dups     # Ignore consecutive duplicates
 setopt hist_find_no_dups    # Don't show duplicates when searching
 setopt hist_reduce_blanks   # Remove superfluous blanks
 setopt hist_verify          # Show command before executing from history
-setopt inc_append_history   # Add commands immediately
 
 # Completion
 setopt complete_in_word # Complete from cursor position

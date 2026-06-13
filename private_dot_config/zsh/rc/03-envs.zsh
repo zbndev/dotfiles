@@ -3,12 +3,9 @@ typeset -U PATH MANPATH
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 
-if [ -n "${KITTY_INSTALLATION_DIR}" ]; then
-  builtin source \
-    "${KITTY_INSTALLATION_DIR}/shell-integration/zsh/"
+if [ -n "${KITTY_INSTALLATION_DIR}" ] && [ -d "${KITTY_INSTALLATION_DIR}/shell-integration/zsh" ]; then
+  builtin source "${KITTY_INSTALLATION_DIR}/shell-integration/zsh/" 2>/dev/null || true
 fi
-
-eval $(dircolors ~/.dircolors)
 
 export EDITOR="nvim"
 export VISUAL=nvim
@@ -25,17 +22,16 @@ export GOTELEMETRY="off"
 export GOPROXY="direct"
 export GOTOOLCHAIN="local"
 
-[ -e "${HOME}/.cargo/env" ] && source "${HOME}/.cargo/env"
 [ -d "${HOME}/.cargo/bin" ] && export PATH="${HOME}/.cargo/bin:${PATH}"
 
 export NPM_PACKAGES="${HOME}/.local/lib/node_modules"
 export PATH="${PATH}:${NPM_PACKAGES}/bin:${HOME}/.local/bin:${HOME}/.cache/.bun/bin"
 export MANPATH="${MANPATH-$(manpath)}:${NPM_PACKAGES}/share/man"
-
-export ZLS_COLORS=$LS_COLORS
 export SSH_KEY_PATH="${HOME}/.ssh/id_ed25519"
 export ERL_AFLAGS="-kernel shell_history enabled"
 export GDK_BACKEND="wayland"
 export MOZ_ENABLE_WAYLAND="1"
 export QT_QPA_PLATFORM="wayland-egl"
 export THEFUCK_EXCLUDE_RULES='fix_file'
+
+export ZAI_API_KEY=$(pass my/zai)

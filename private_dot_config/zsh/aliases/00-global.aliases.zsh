@@ -12,4 +12,4 @@ alias .z='source ~/.config/zsh/.zshrc'
 
 alias c='clear'
 
-alias avante='nvim -c "lua vim.defer_fn(function()require(\"avante.api\").zen_mode()end, 100)"'
+alias deploy='git fetch && git pull && docker compose up --build -d'
