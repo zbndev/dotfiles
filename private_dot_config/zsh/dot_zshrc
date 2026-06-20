@@ -13,3 +13,6 @@ for rc_file in $ZDOTDIR/rc/[0-9][0-9]*.zsh; do
   [[ -f $rc_file ]] && source "$rc_file"
 done
 
+
+# opencode
+export PATH=/home/herald/.opencode/bin:$PATH

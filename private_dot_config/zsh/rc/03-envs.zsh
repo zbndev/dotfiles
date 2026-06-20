@@ -11,7 +11,7 @@ export EDITOR="nvim"
 export VISUAL=nvim
 export SUDO_EDITOR=nvim
 
-export TERMINAL=ghostty
+export TERMINAL=kitty
 export COLORTERM=truecolor
 
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
@@ -24,6 +24,8 @@ export GOTOOLCHAIN="local"
 
 [ -d "${HOME}/.cargo/bin" ] && export PATH="${HOME}/.cargo/bin:${PATH}"
 
+export BUN_INSTALL_BIN="$HOME/.local/bin"
+export BUN_INSTALL_CACHE_DIR="$HOME/.local/share/bun/cache"
 export NPM_PACKAGES="${HOME}/.local/lib/node_modules"
 export PATH="${PATH}:${NPM_PACKAGES}/bin:${HOME}/.local/bin:${HOME}/.cache/.bun/bin"
 export MANPATH="${MANPATH-$(manpath)}:${NPM_PACKAGES}/share/man"
@@ -35,3 +37,8 @@ export QT_QPA_PLATFORM="wayland-egl"
 export THEFUCK_EXCLUDE_RULES='fix_file'
 
 export ZAI_API_KEY=$(pass my/zai)
+export OPENAI_API_KEY=$(pass my/zai)
+
+# Fix: opencode defaults to --port 0 (ephemeral), but oh-my-openagent team mode
+# defaults to port 4096. Without this, team members can't connect to the server.
+export OPENCODE_PORT=4096

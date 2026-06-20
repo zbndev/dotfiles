@@ -13,3 +13,5 @@ alias .z='source ~/.config/zsh/.zshrc'
 alias c='clear'
 
 alias deploy='git fetch && git pull && docker compose up --build -d'
+
+alias oc='opencode --port 4096'
