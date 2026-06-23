@@ -1,5 +1,5 @@
 local vars = require("variables")
-local fn   = require("hyprland.functions")
+local fn = require("hyprland.functions")
 
 -- Launcher
 hl.bind("SUPER + SUPER_L", hl.dsp.global("caelestia:launcher"), { release = true })
@@ -13,8 +13,8 @@ hl.bind(vars.kbLock, hl.dsp.global("caelestia:lock"))
 
 -- Restore lock
 hl.bind(vars.kbRestoreLock, function()
-    hl.dispatch(hl.dsp.exec_cmd("caelestia shell -d"))
-    hl.dispatch(hl.dsp.global("caelestia:lock"))
+	hl.dispatch(hl.dsp.exec_cmd("caelestia shell -d"))
+	hl.dispatch(hl.dsp.global("caelestia:lock"))
 end)
 
 -- Brightness
@@ -34,17 +34,17 @@ hl.bind("XF86AudioStop", hl.dsp.global("caelestia:mediaStop"), { locked = true }
 -- Kill/restart
 hl.bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd("qs -c caelestia kill"), { release = true })
 hl.bind(
-    "CTRL + SUPER + ALT + R",
-    hl.dsp.exec_cmd("qs -c caelestia kill; sleep .1; caelestia shell -d"),
-    { release = true }
+	"CTRL + SUPER + ALT + R",
+	hl.dsp.exec_cmd("qs -c caelestia kill; sleep .1; caelestia shell -d"),
+	{ release = true }
 )
 
 for i = 1, 10 do
-    local key = i % 10 -- 10 maps to key 0
-    hl.bind(vars.kbGoToWs .. " + " .. key, fn.wsaction("focus", "", i))
-    hl.bind(vars.kbMoveWinToWs .. " + " .. key, fn.wsaction("move", "", i))
-    hl.bind(vars.kbGoToWsGroup .. " + " .. key, fn.wsaction("focus", "group", i))
-    hl.bind(vars.kbMoveWinToWsGroup .. " + " .. key, fn.wsaction("move", "group", i))
+	local key = i % 10 -- 10 maps to key 0
+	hl.bind(vars.kbGoToWs .. " + " .. key, fn.wsaction("focus", "", i))
+	hl.bind(vars.kbMoveWinToWs .. " + " .. key, fn.wsaction("move", "", i))
+	hl.bind(vars.kbGoToWsGroup .. " + " .. key, fn.wsaction("focus", "group", i))
+	hl.bind(vars.kbMoveWinToWsGroup .. " + " .. key, fn.wsaction("move", "group", i))
 end
 
 -- Go to workspace -1/+1
@@ -74,7 +74,7 @@ hl.bind("SUPER + ALT + S", hl.dsp.window.move({ workspace = "special:special" })
 
 -- Window groups
 hl.bind(vars.kbWindowGroupCycleNext, hl.dsp.window.cycle_next(), { repeating = true })
-hl.bind(vars.kbWindowGroupCyclePrev, hl.dsp.window.cycle_next(), { repeating = true })
+hl.bind(vars.kbWindowGroupCyclePrev, hl.dsp.window.cycle_next({ next = false }), { repeating = true })
 hl.bind("CTRL + ALT + Tab", hl.dsp.group.next(), { repeating = true })
 hl.bind("CTRL + SHIFT + ALT + Tab", hl.dsp.group.prev(), { repeating = true })
 hl.bind(vars.kbToggleGroup, hl.dsp.group.toggle())
@@ -107,16 +107,16 @@ hl.bind("CTRL + SUPER + Backslash", hl.dsp.window.center())
 hl.bind("CTRL + SUPER + ALT + Backslash", hl.dsp.window.resize(fn.resize_by_screen(55, 70)))
 hl.bind("CTRL + SUPER + ALT + Backslash", hl.dsp.window.center())
 hl.bind(vars.kbWindowPip, function()
-    local a = hl.get_active_window()
-    if a then
-        local pip = fn.move_actions(a) or {}
-        table.insert(pip, 1, hl.dsp.window.float())
-        table.insert(pip, hl.dsp.window.pin({ window = "address:" .. a.address }))
+	local a = hl.get_active_window()
+	if a then
+		local pip = fn.move_actions(a) or {}
+		table.insert(pip, 1, hl.dsp.window.float())
+		table.insert(pip, hl.dsp.window.pin({ window = "address:" .. a.address }))
 
-        for _, x in ipairs(pip) do
-            hl.dispatch(x)
-        end
-    end
+		for _, x in ipairs(pip) do
+			hl.dispatch(x)
+		end
+	end
 end)
 hl.bind(vars.kbPinWindow, hl.dsp.window.pin())
 hl.bind(vars.kbWindowFullscreen, hl.dsp.window.fullscreen({ mode = "fullscreen" }))
@@ -152,18 +152,22 @@ hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURC
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
 hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
 hl.bind(
-    "XF86AudioRaiseVolume",
-    hl.dsp.exec_cmd(
-        "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0; wpctl set-volume @DEFAULT_AUDIO_SINK@ " .. vars.volumeStep .. "%+"
-    ),
-    { locked = true, repeating = true }
+	"XF86AudioRaiseVolume",
+	hl.dsp.exec_cmd(
+		"wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0; wpctl set-volume @DEFAULT_AUDIO_SINK@ "
+			.. (vars.volumeMax / 100)
+			.. " @DEFAULT_AUDIO_SINK@ "
+			.. vars.volumeStep
+			.. "%+"
+	),
+	{ locked = true, repeating = true }
 )
 hl.bind(
-    "XF86AudioLowerVolume",
-    hl.dsp.exec_cmd(
-        "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0; wpctl set-volume @DEFAULT_AUDIO_SINK@ " .. vars.volumeStep .. "%-"
-    ),
-    { locked = true, repeating = true }
+	"XF86AudioLowerVolume",
+	hl.dsp.exec_cmd(
+		"wpctl set-mute @DEFAULT_AUDIO_SINK@ 0; wpctl set-volume @DEFAULT_AUDIO_SINK@ " .. vars.volumeStep .. "%-"
+	),
+	{ locked = true, repeating = true }
 )
 
 -- Sleep
@@ -174,17 +178,17 @@ hl.bind("SUPER + V", hl.dsp.exec_cmd("pkill fuzzel || caelestia clipboard"))
 hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd("pkill fuzzel || caelestia clipboard -d"))
 hl.bind("SUPER + Period", hl.dsp.exec_cmd("pkill fuzzel || caelestia emoji -p"))
 hl.bind(
-    "CTRL + SHIFT + ALT + V",
-    hl.dsp.exec_cmd("sleep 0.5s && ydotool type -d 1 '$(cliphist list | head -1 | cliphist decode)"),
-    { locked = true }
+	"CTRL + SHIFT + ALT + V",
+	hl.dsp.exec_cmd('sleep 0.5s && ydotool type -d 1 "$(cliphist list | head -1 | cliphist decode)"'),
+	{ locked = true }
 )
 
 -- Testing
 hl.bind(
-    "SUPER + ALT + F12",
-    hl.dsp.exec_cmd(
-        "notify-send -u low -i dialog-information-symbolic 'Test notification' " ..
-        [["Here's a really long message to test truncation and wrapping\nYou can middle click or flick this notification to dismiss it!"]] ..
-        " -a 'Shell' -A 'Test1=I got it!' -A 'Test2=Another action'"
-    )
+	"SUPER + ALT + F12",
+	hl.dsp.exec_cmd(
+		"notify-send -u low -i dialog-information-symbolic 'Test notification' "
+			.. [["Here's a really long message to test truncation and wrapping\nYou can middle click or flick this notification to dismiss it!"]]
+			.. " -a 'Shell' -A 'Test1=I got it!' -A 'Test2=Another action'"
+	)
 )
