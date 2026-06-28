@@ -24,7 +24,7 @@
     "iconTheme": "Papirus-Dark",
     "iconThemeLight": "Papirus-Light",
     "iconThemeDark": "Papirus-Dark",
-    "postHook": "sudo /usr/share/sddm/themes/caelestia/scripts/sync.sh --posthook && caelestia-colorizer"
+    "postHook": "sudo /usr/share/sddm/themes/caelestia/scripts/sync.sh --posthook && ~/.local/bin/caelestia-colorizer"
   },
   "toggles": {
     "communication": {
