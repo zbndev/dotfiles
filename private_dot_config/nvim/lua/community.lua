@@ -8,5 +8,6 @@ return {
   { import = "astrocommunity.pack.bash" },
   { import = "astrocommunity.pack.markdown" },
   { import = "astrocommunity.git" },
+  { import = "astrocommunity.pack.json" },
   -- import/override with your plugins folder
 }
