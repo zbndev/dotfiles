@@ -42,3 +42,4 @@ export OPENAI_API_KEY=$(pass my/zai)
 # Fix: opencode defaults to --port 0 (ephemeral), but oh-my-openagent team mode
 # defaults to port 4096. Without this, team members can't connect to the server.
 export OPENCODE_PORT=4096
+export PI_DIALECT=glm

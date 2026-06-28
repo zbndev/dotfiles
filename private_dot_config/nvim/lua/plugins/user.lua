@@ -1,4 +1,3 @@
----@type LazySpec
 return {
 
   -- == Examples of Adding Plugins ==
@@ -110,5 +109,5 @@ return {
     },
     ---@type oklch.Opts
     opts = {},
-  },
+  }
 }

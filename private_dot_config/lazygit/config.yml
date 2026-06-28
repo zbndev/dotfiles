@@ -10,33 +10,35 @@ gui:
   language: en # one of 'auto' | 'en' | 'zh' | 'pl' | 'nl' | 'ja' | 'ko' | 'ru'
   timeFormat: 02 Jan 06  # https://pkg.go.dev/time#Time.Format
   shortTimeFormat: 13:00
+# >>> caelestia-colorizer (managed block) >>>
   theme:
     activeBorderColor:
-     - "#8ba4b0"
-     - "bold"
+      - "#c7c7c7"
+      - bold
     inactiveBorderColor:
-     - "#625e5a"
+      - "#a3a3a3"
     searchingActiveBorderColor:
-     - "#c4b28a"
-     - "bold"
+      - "#f7f7f7"
+      - bold
     optionsTextColor:
-     - "#8992a7"
+      - "#9d9d9d"
     selectedLineBgColor:
-     - "#282727"
+      - "#343434"
     inactiveViewSelectedLineBgColor:
-     - "#1d1c19"
+      - "#343434"
     cherryPickedCommitFgColor:
-     - "#8ba4b0"
+      - "#c7c7c7"
     cherryPickedCommitBgColor:
-     - "#282727"
+      - "#a3a3a3"
     markedBaseCommitFgColor:
-     - "#c4b28a"
+      - "#f7f7f7"
     markedBaseCommitBgColor:
-     - "#282727"
+      - "#a3a3a3"
     unstagedChangesColor:
-     - "#c4746e"
+      - "#c8813a"
     defaultFgColor:
-     - "#c5c9c5"
+      - "#e6e6e6"
+# <<< caelestia-colorizer (managed block) <<<
   commitLength:
     show: true
   mouseEvents: true

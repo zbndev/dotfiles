@@ -1,0 +1,909 @@
+#!/usr/bin/env python3
+"""
+caelestia-colorizer — inject the Caelestia colorscheme into terminal TUI apps.
+
+Reads the live colorscheme produced by Caelestia
+(`~/.local/state/caelestia/scheme.json` by default) and writes / updates
+config for:
+
+  * bat        ~/.config/bat/themes/caelestia.tmTheme   (new file each run)
+  * atuin      ~/.config/atuin/themes/caelestia.toml    (new file each run)
+  * eza        ~/.config/eza/theme.yml                  (overwrite)
+  * lazygit    ~/.config/lazygit/config.yml             (surgical edit of gui.theme)
+  * starship   ~/.config/starship.toml                  (surgical edit of [palettes.caelestia])
+
+Apps whose config directory does not exist are silently skipped.
+Individual apps can be excluded with `--without-<app>`.
+
+COLOR MODEL
+-----------
+Caelestia pushes a 16-color ANSI palette to the terminal via escape sequences
+(~/.local/state/caelestia/sequences.txt, OSC 4;N;rgb:...). scheme.json mirrors
+those values as term0..term15 plus foreground/background/cursor/selection and
+three extended slots (primary/secondary/tertiary).
+
+This script treats those ANSI slots as the single source of truth. App
+generators reference slots by their ANSI semantic name (red, green, blue, ...)
+which describes the SLOT meaning, not the actual hue — slot 1 is the "red"
+slot whether the current wallpaper makes it red, orange, or peach. This keeps
+the mapping stable across Caelestia's variants (neutral / vibrant /
+monochrome) and matches what terminal-aware apps already see.
+
+The script is idempotent: running it twice produces the same result, and any
+block previously written by it is replaced in-place rather than duplicated.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import shutil
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Mapping
+
+SCHEME_DEFAULT = Path.home() / ".local" / "state" / "caelestia" / "scheme.json"
+CONFIG_DIR = Path.home() / ".config"
+
+APPS = ("bat", "atuin", "eza", "lazygit", "starship")
+
+MARKER_BEGIN = ">>> caelestia-colorizer (managed block) >>>"
+MARKER_END = "<<< caelestia-colorizer (managed block) <<<"
+
+
+# --------------------------------------------------------------------------- #
+# Errors
+# --------------------------------------------------------------------------- #
+
+
+class ColorizerError(Exception):
+    """Raised for fatal conditions (missing scheme, unreadable file, ...)."""
+
+
+# --------------------------------------------------------------------------- #
+# Terminal palette
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class Terminal:
+    """Caelestia's terminal palette, sourced from scheme.json.
+
+    `slots` is the 16-color ANSI palette (term0..term15 in scheme.json) —
+    identical to what `sequences.txt` pushes to the terminal via OSC 4;N.
+    Generators reference slot colors through the ANSI semantic properties
+    (`red`, `green`, ...) below; the property name describes the slot's
+    semantic role (slot 1 = "red" slot), not the actual hue in the current
+    Caelestia variant.
+    """
+
+    slots: tuple[str, ...]  # 16 hex values (no '#'), indexed by ANSI slot
+    fg: str          # OSC 10 (foreground)
+    bg: str          # OSC 11 (background)
+    cursor: str      # OSC 12 (cursor color)
+    selection: str   # OSC 17 (selection background)
+    primary: str     # extended slot 16
+    secondary: str   # extended slot 17
+    tertiary: str    # extended slot 18
+    raw: Mapping[str, str]  # original scheme.json colours dict, fallback only
+
+    # --- ANSI slot semantic accessors -------------------------------------- #
+    # Industry-standard names. They refer to SLOT MEANING so the mapping
+    # stays stable across wallpapers/variants.
+
+    @property
+    def black(self) -> str: return self.slots[0]
+    @property
+    def red(self) -> str: return self.slots[1]
+    @property
+    def green(self) -> str: return self.slots[2]
+    @property
+    def yellow(self) -> str: return self.slots[3]
+    @property
+    def blue(self) -> str: return self.slots[4]
+    @property
+    def magenta(self) -> str: return self.slots[5]
+    @property
+    def cyan(self) -> str: return self.slots[6]
+    @property
+    def white(self) -> str: return self.slots[7]
+    @property
+    def bright_black(self) -> str: return self.slots[8]
+    @property
+    def bright_red(self) -> str: return self.slots[9]
+    @property
+    def bright_green(self) -> str: return self.slots[10]
+    @property
+    def bright_yellow(self) -> str: return self.slots[11]
+    @property
+    def bright_blue(self) -> str: return self.slots[12]
+    @property
+    def bright_magenta(self) -> str: return self.slots[13]
+    @property
+    def bright_cyan(self) -> str: return self.slots[14]
+    @property
+    def bright_white(self) -> str: return self.slots[15]
+
+
+def _pick(raw: Mapping[str, str], *keys: str, default: str = "cccccc") -> str:
+    """Return the first present hex value (without '#') from `keys`."""
+    for k in keys:
+        v = raw.get(k)
+        if v:
+            return v.lstrip("#")
+    return default
+
+
+def build_terminal(raw: Mapping[str, str]) -> Terminal:
+    """Build a :class:`Terminal` from scheme.json's `colours` dict."""
+
+    def slot(i: int) -> str:
+        return raw.get(f"term{i}", "cccccc").lstrip("#")
+
+    return Terminal(
+        slots=tuple(slot(i) for i in range(16)),
+        fg=_pick(raw, "text", "onBackground", "onSurface"),
+        bg=_pick(raw, "base", "background"),
+        cursor=_pick(raw, "cursor", "secondary", default="9d9d9d"),
+        selection=_pick(raw, "selection", "secondary", default="9d9d9d"),
+        primary=_pick(raw, "primary", default="c7c7c7"),
+        secondary=_pick(raw, "secondary", default="9d9d9d"),
+        tertiary=_pick(raw, "tertiary", default="f7f7f7"),
+        raw=raw,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Small helpers
+# --------------------------------------------------------------------------- #
+
+
+def hx(hex_no_hash: str) -> str:
+    """Return '#rrggbb' for a hex value stored without leading '#'."""
+    return "#" + hex_no_hash
+
+
+def hx_alpha(hex_no_hash: str, alpha: str = "40") -> str:
+    """Return '#rrggbbAA' (8-digit, used by TextMate / starship formats)."""
+    return "#" + hex_no_hash + alpha
+
+
+def replace_marked_block(
+    original: str,
+    comment_prefix: str,
+    new_block: str,
+) -> str:
+    """Replace text between marker comments; append if no marker present."""
+    begin = f"{comment_prefix} {MARKER_BEGIN}"
+    end = f"{comment_prefix} {MARKER_END}"
+    pattern = re.compile(re.escape(begin) + r".*?" + re.escape(end), re.DOTALL)
+
+    block = f"{begin}\n{new_block.strip()}\n{end}"
+
+    if pattern.search(original):
+        return pattern.sub(lambda _m: block, original)
+
+    sep = "" if original.endswith("\n") or not original else "\n"
+    tail = "\n" if original else ""
+    return f"{original}{sep}{block}{tail}"
+
+
+def ensure_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def write_text(path: Path, content: str, dry_run: bool) -> None:
+    if dry_run:
+        print(f"  [dry-run] would write {path}")
+        return
+    ensure_dir(path.parent)
+    path.write_text(content, encoding="utf-8")
+    print(f"  wrote {path}")
+
+
+# --------------------------------------------------------------------------- #
+# App generators
+# --------------------------------------------------------------------------- #
+
+
+def gen_bat(t: Terminal) -> str:
+    """Generate a bat / TextMate .tmTheme file."""
+
+    def xml(s: str) -> str:
+        return s.replace("&", "&amp;")
+
+    # Base text colors
+    fg = hx(t.fg)
+    bg = hx(t.bg)
+    caret = hx(t.cursor)
+    selection = hx_alpha(t.selection, "40")
+    line_highlight = hx_alpha(t.black, "80")
+    accent = hx(t.red)
+    misspelling = hx(t.red)
+    gutter = hx(t.bright_black)
+
+    # Per-scope mapping: (label, scope, hex-without-#).
+    # Slot assignment by ANSI semantic role — stays consistent across
+    # Caelestia variants. Categorical highlights (keywords/types/etc.) use
+    # distinct slots so unrelated tokens don't collapse to the same color.
+    scopes: list[tuple[str, str, str]] = [
+        ("Parentheses, Brackets, Braces", "punctuation", t.bright_black),
+        ("Variable", "variable", t.fg),
+        ("Variable function", "variable.function", t.blue),
+        ("Variable parameter", "variable.parameter", t.magenta),
+        ("Variable language", "variable.language", t.bright_black),
+        ("Variable annotation", "variable.annotation, meta.variable.annotation", t.cyan),
+        ("Constants", "constant", t.magenta),
+        ("Constant escape", "constant.character.escape", t.magenta),
+        ("Constant numeric", "constant.numeric", t.magenta),
+        ("Constant other", "constant.other", t.magenta),
+        ("Entities (classes, types)", "entity.name.class, entity.name.type.class, entity.name.type.module, entity.name.struct, entity.name.type", t.cyan),
+        ("Entity function", "entity.name.function, entity.name.function.member, support.function", t.blue),
+        ("Entity tag", "entity.name.tag", t.red),
+        ("Attribute IDs", "entity.other.inherited-class, entity.name.constant, entity.other.attribute-name", t.magenta),
+        ("Keyword", "keyword", t.red),
+        ("Keyword control", "keyword.control", t.red),
+        ("Keyword operator", "keyword.operator", t.red),
+        ("Keyword import", "keyword.control.import, keyword.control.from, keyword.import", t.red),
+        ("Storage", "storage", t.red),
+        ("Storage modifier", "storage.modifier", t.red),
+        ("String", "string", t.green),
+        ("String escape", "string.quoted", t.green),
+        ("Comment", "comment", t.bright_black),
+        ("Support function", "support.function", t.blue),
+        ("Support type", "support.type, support.class", t.cyan),
+        ("Support constant", "support.constant", t.magenta),
+        ("Support variable", "support.variable", t.fg),
+        ("Punctuation definition", "punctuation.definition.tag, punctuation.definition.keyword, punctuation.separator, punctuation.terminator", t.bright_black),
+        ("Punctuation section", "punctuation.section", t.bright_black),
+        ("Markup heading 1", "markup.heading.1.markdown", t.red),
+        ("Markup heading 2", "markup.heading.2.markdown", t.magenta),
+        ("Markup heading", "markup.heading.markdown", t.cyan),
+        ("Markup bold", "markup.bold", t.red),
+        ("Markup italic", "markup.italic", t.magenta),
+        ("Markup raw", "markup.raw.block, markup.raw.inline", t.green),
+        ("Markup link", "markup.underline.link, string.other.link", t.cyan),
+        ("Markup list", "markup.list", t.bright_black),
+        ("Markup quote", "markup.quote", t.bright_black),
+        ("Diff inserted", "markup.inserted.diff, markup.inserted", t.green),
+        ("Diff deleted", "markup.deleted.diff, markup.deleted", t.red),
+        ("Diff changed", "markup.changed.diff", t.cyan),
+        ("Man page options", "entity.name", t.cyan),
+    ]
+
+    scope_xml: list[str] = []
+    for label, scope, hex_val in scopes:
+        scope_xml.append(
+            "      <dict>\n"
+            + (f'        <key>name</key>\n        <string>{xml(label)}</string>\n' if label else "")
+            + f'        <key>scope</key>\n        <string>{xml(scope)}</string>\n'
+            + "        <key>settings</key>\n"
+            + "        <dict>\n"
+            + f'          <key>foreground</key>\n          <string>{hx(hex_val)}</string>\n'
+            + "        </dict>\n"
+            + "      </dict>"
+        )
+
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
+        '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
+        '<plist version="1.0">\n'
+        "  <dict>\n"
+        "    <key>name</key>\n"
+        "    <string>Caelestia</string>\n"
+        "    <key>semanticClass</key>\n"
+        "    <string>theme.dark.caelestia</string>\n"
+        "    <key>uuid</key>\n"
+        "    <string>caelestia-colorizer-0000-0000-0000-000000000001</string>\n"
+        "    <key>author</key>\n"
+        "    <string>caelestia-colorizer</string>\n"
+        "    <key>colorSpaceName</key>\n"
+        "    <string>sRGB</string>\n"
+        "    <key>settings</key>\n"
+        "    <array>\n"
+        "      <dict>\n"
+        "        <key>settings</key>\n"
+        "        <dict>\n"
+        f"          <key>background</key>\n          <string>{bg}</string>\n"
+        f"          <key>foreground</key>\n          <string>{fg}</string>\n"
+        f"          <key>caret</key>\n          <string>{caret}</string>\n"
+        f"          <key>lineHighlight</key>\n          <string>{line_highlight}</string>\n"
+        f"          <key>misspelling</key>\n          <string>{misspelling}</string>\n"
+        f"          <key>accent</key>\n          <string>{accent}</string>\n"
+        f"          <key>selection</key>\n          <string>{selection}</string>\n"
+        f"          <key>activeGuide</key>\n          <string>{hx(t.bright_black)}</string>\n"
+        f"          <key>findHighlight</key>\n          <string>{hx_alpha(t.red, '40')}</string>\n"
+        f"          <key>gutterForeground</key>\n          <string>{gutter}</string>\n"
+        "        </dict>\n"
+        "      </dict>\n"
+        + "\n".join(scope_xml)
+        + "\n"
+        + "    </array>\n"
+        + "  </dict>\n"
+        + "</plist>\n"
+    )
+
+
+def gen_atuin(t: Terminal) -> str:
+    """Generate an Atuin theme TOML file."""
+    # The Caelestia `yellow` slot is near-white in neutral variants and the
+    # terminal `fg` is essentially white (#e6e6e6) — both unsuitable for
+    # Atuin's `Base` (main command-list text) and `AlertWarn`. Use warm-hued
+    # slots instead (gold/orange) which match kanagawa's intent and stay
+    # readable across variants.
+    lines = [
+        '[theme]',
+        'name = "caelestia"',
+        '',
+        '[colors]',
+        f'AlertInfo  = "{hx(t.green)}"',
+        f'AlertError = "{hx(t.red)}"',
+        f'AlertWarn  = "{hx(t.magenta)}"',
+        f'Annotation = "{hx(t.bright_black)}"',
+        f'Base       = "{hx(t.bright_cyan)}"',
+        f'Guidance   = "{hx(t.magenta)}"',
+        f'Muted      = "{hx(t.bright_black)}"',
+        f'Important  = "{hx(t.magenta)}"',
+        f'Title      = "{hx(t.bright_magenta)}"',
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def gen_eza(t: Terminal) -> str:
+    """Generate an eza theme.yml."""
+
+    def f(hex_val: str) -> str:
+        return f'{{ foreground: "{hx(hex_val)}" }}'
+
+    # The Caelestia `yellow` ANSI slot is near-white in neutral variants
+    # (e.g. #eae5e3). Slots that traditionally mean "yellow/warm warning"
+    # (write permission bits, dates, git modified) borrow `magenta` instead
+    # — magenta retains a warm hue (orange-ish) in every Caelestia variant
+    # so the visual intent survives.
+    warm = t.magenta
+
+    lines = ["colourful: true", ""]
+    lines += ["filekinds:"]
+    lines += [f"  normal: {f(t.white)}"]
+    lines += [f"  directory: {f(t.blue)}"]
+    lines += [f"  symlink: {f(t.cyan)}"]
+    lines += [f"  pipe: {f(t.bright_black)}"]
+    lines += [f"  block_device: {f(warm)}"]
+    lines += [f"  char_device: {f(warm)}"]
+    lines += [f"  socket: {f(t.bright_black)}"]
+    lines += [f"  special: {f(t.bright_magenta)}"]
+    lines += [f"  executable: {f(t.green)}"]
+    lines += [f"  mount_point: {f(t.bright_cyan)}"]
+    lines += [""]
+
+    lines += ["perms:"]
+    lines += [f"  user_read: {f(t.white)}"]
+    lines += [f"  user_write: {f(warm)}"]
+    lines += [f"  user_execute_file: {f(t.green)}"]
+    lines += [f"  user_execute_other: {f(t.green)}"]
+    lines += [f"  group_read: {f(t.bright_black)}"]
+    lines += [f"  group_write: {f(warm)}"]
+    lines += [f"  group_execute: {f(t.green)}"]
+    lines += [f"  other_read: {f(t.bright_black)}"]
+    lines += [f"  other_write: {f(warm)}"]
+    lines += [f"  other_execute: {f(t.green)}"]
+    lines += [f"  special_user_file: {f(t.bright_magenta)}"]
+    lines += [f"  special_other: {f(t.bright_black)}"]
+    lines += [f"  attribute: {f(t.bright_black)}"]
+    lines += [""]
+
+    lines += ["size:"]
+    lines += [f"  major: {f(t.bright_black)}"]
+    lines += [f"  minor: {f(t.cyan)}"]
+    lines += [f"  number_byte: {f(t.white)}"]
+    lines += [f"  number_kilo: {f(t.bright_black)}"]
+    lines += [f"  number_mega: {f(t.cyan)}"]
+    lines += [f"  number_giga: {f(t.bright_magenta)}"]
+    lines += [f"  number_huge: {f(t.bright_magenta)}"]
+    lines += [f"  unit_byte: {f(t.bright_black)}"]
+    lines += [f"  unit_kilo: {f(t.cyan)}"]
+    lines += [f"  unit_mega: {f(t.bright_magenta)}"]
+    lines += [f"  unit_giga: {f(t.bright_magenta)}"]
+    lines += [f"  unit_huge: {f(t.cyan)}"]
+    lines += [""]
+
+    lines += ["users:"]
+    lines += [f"  user_you: {f(t.bright_black)}"]
+    lines += [f"  user_root: {f(t.red)}"]
+    lines += [f"  user_other: {f(t.bright_magenta)}"]
+    lines += [f"  group_yours: {f(t.bright_black)}"]
+    lines += [f"  group_other: {f(t.bright_black)}"]
+    lines += [f"  group_root: {f(t.red)}"]
+    lines += [""]
+
+    lines += ["links:"]
+    lines += [f"  normal: {f(t.cyan)}"]
+    lines += [f"  multi_link_file: {f(t.cyan)}"]
+    lines += [""]
+
+    lines += ["git:"]
+    lines += [f"  new: {f(t.green)}"]
+    lines += [f"  modified: {f(warm)}"]
+    lines += [f"  deleted: {f(t.red)}"]
+    lines += [f"  renamed: {f(t.cyan)}"]
+    lines += [f"  typechange: {f(t.magenta)}"]
+    lines += [f"  ignored: {f(t.bright_black)}"]
+    lines += [f"  conflicted: {f(t.bright_red)}"]
+    lines += [""]
+
+    lines += ["git_repo:"]
+    lines += [f"  branch_main: {f(t.white)}"]
+    lines += [f"  branch_other: {f(t.bright_magenta)}"]
+    lines += [f"  git_clean: {f(t.green)}"]
+    lines += [f"  git_dirty: {f(t.red)}"]
+    lines += [""]
+
+    lines += ["security_context:"]
+    lines += [f"  colon: {f(t.bright_black)}"]
+    lines += [f"  user: {f(t.bright_black)}"]
+    lines += [f"  role: {f(t.bright_magenta)}"]
+    lines += [f"  typ: {f(t.bright_black)}"]
+    lines += [f"  range: {f(t.bright_magenta)}"]
+    lines += [""]
+
+    lines += ["file_type:"]
+    lines += [f"  image: {f(t.magenta)}"]
+    lines += [f"  video: {f(t.red)}"]
+    lines += [f"  music: {f(t.green)}"]
+    lines += [f"  lossless: {f(t.cyan)}"]
+    lines += [f"  crypto: {f(t.bright_black)}"]
+    lines += [f"  document: {f(t.magenta)}"]
+    lines += [f"  compressed: {f(t.red)}"]
+    lines += [f"  temp: {f(t.bright_black)}"]
+    lines += [f"  compiled: {f(t.bright_magenta)}"]
+    lines += [f"  build: {f(t.bright_cyan)}"]
+    lines += [f"  source: {f(t.bright_blue)}"]
+    lines += [""]
+
+    lines += [f"punctuation: {f(t.bright_black)}"]
+    lines += [f"date: {f(warm)}"]
+    lines += [f"inode: {f(t.bright_black)}"]
+    lines += [f"blocks: {f(t.bright_black)}"]
+    lines += [f"header: {f(t.white)}"]
+    lines += [f"octal: {f(t.cyan)}"]
+    lines += [f"flags: {f(t.bright_magenta)}"]
+    lines += [""]
+
+    lines += [f"symlink_path: {f(t.cyan)}"]
+    lines += [f"control_char: {f(t.cyan)}"]
+    lines += [f"broken_symlink: {f(t.red)}"]
+    lines += [f"broken_path_overlay: {f(t.bright_black)}"]
+    lines += [""]
+
+    return "\n".join(lines)
+
+
+# --- lazygit --------------------------------------------------------------- #
+
+
+_LAZYGIT_THEME_BLOCK = """\
+  theme:
+    activeBorderColor:
+      - "{primary}"
+      - bold
+    inactiveBorderColor:
+      - "{bright_black}"
+    searchingActiveBorderColor:
+      - "{tertiary}"
+      - bold
+    optionsTextColor:
+      - "{secondary}"
+    selectedLineBgColor:
+      - "{selection_bg}"
+    inactiveViewSelectedLineBgColor:
+      - "{black}"
+    cherryPickedCommitFgColor:
+      - "{primary}"
+    cherryPickedCommitBgColor:
+      - "{bright_black}"
+    markedBaseCommitFgColor:
+      - "{tertiary}"
+    markedBaseCommitBgColor:
+      - "{bright_black}"
+    unstagedChangesColor:
+      - "{red}"
+    defaultFgColor:
+      - "{fg}"
+"""
+
+
+def gen_lazygit_block(t: Terminal) -> str:
+    return _LAZYGIT_THEME_BLOCK.format(
+        primary=hx(t.primary),
+        bright_black=hx(t.bright_black),
+        tertiary=hx(t.tertiary),
+        secondary=hx(t.secondary),
+        selection_bg=hx(t.black),
+        black=hx(t.black),
+        red=hx(t.red),
+        fg=hx(t.fg),
+    )
+
+
+# Captures a single `  theme:` subblock as written by this script: the header
+# line plus every 4-space-indented child line that follows.
+_LAZYGIT_INNER_THEME_RE = re.compile(
+    r"^  theme:\n(?:    .*\n)+",
+    re.MULTILINE,
+)
+
+
+def _splice_lazygit_gui(gui_body: str, new_theme: str) -> str:
+    if _LAZYGIT_INNER_THEME_RE.search(gui_body):
+        return _LAZYGIT_INNER_THEME_RE.sub(new_theme, gui_body, count=1)
+    return new_theme + gui_body
+
+
+def update_lazygit(t: Terminal, dry_run: bool) -> None:
+    """Surgically replace the `gui.theme` subblock inside lazygit config.
+
+    Strategy:
+      1. If a managed marker block already exists under `gui:`, replace its
+         body verbatim.
+      2. Otherwise, walk the file line-by-line to find the `gui:` block and
+         splice the `theme:` subblock inside it (wrapping the result in
+         markers so subsequent runs hit case 1).
+      3. If no `gui:` block exists at all, append one (marked).
+
+    The hand-rolled YAML scan preserves every comment in the file (a PyYAML
+    round-trip would discard them).
+    """
+    cfg = CONFIG_DIR / "lazygit" / "config.yml"
+    original = cfg.read_text(encoding="utf-8")
+
+    begin = f"# {MARKER_BEGIN}"
+    end = f"# {MARKER_END}"
+    marker_re = re.compile(re.escape(begin) + r".*?" + re.escape(end), re.DOTALL)
+
+    new_theme = gen_lazygit_block(t)
+
+    # Case 1: marker block already present. Use rstrip (not strip) so the
+    # 2-space indent that nests `theme:` under `gui:` is preserved across
+    # repeated runs.
+    if marker_re.search(original):
+        block = f"{begin}\n{new_theme.rstrip()}\n{end}"
+        write_text(cfg, marker_re.sub(lambda _m: block, original), dry_run)
+        return
+
+    # Walk the file line-by-line, finding the top-level `gui:` block. A
+    # top-level key starts at column 0 and matches `^[A-Za-z_][\w-]*:`;
+    # anything indented belongs to the current block.
+    lines = original.splitlines(keepends=True)
+    out: list[str] = []
+    consumed_gui = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if (
+            line
+            and not line[0].isspace()
+            and re.match(r"^[A-Za-z_][\w-]*:", line)
+            and line.rstrip().removesuffix(":").strip() == "gui"
+            and not consumed_gui
+        ):
+            out.append(line)
+            i += 1
+            body: list[str] = []
+            while i < len(lines) and (
+                not lines[i]
+                or lines[i][0].isspace()
+            ):
+                body.append(lines[i])
+                i += 1
+            new_body = _splice_lazygit_gui("".join(body), new_theme)
+            out.append(new_body)
+            consumed_gui = True
+            continue
+        out.append(line)
+        i += 1
+
+    if not consumed_gui:
+        if out and not out[-1].endswith("\n"):
+            out.append("\n")
+        out.append("gui:\n")
+        out.append(new_theme)
+
+    final = "".join(out)
+
+    # Wrap the just-written `  theme:` subblock in managed markers so the
+    # next run hits the early-return branch above (idempotency).
+    marked_theme = f"{begin}\n{new_theme.rstrip()}\n{end}\n"
+    final = _LAZYGIT_INNER_THEME_RE.subn(
+        lambda _m: marked_theme,
+        final,
+        count=1,
+    )[0]
+
+    write_text(cfg, final, dry_run)
+
+
+# --- starship -------------------------------------------------------------- #
+
+
+# Starship palette entries. Each tuple is (palette_key, slot_hex). Both
+# snake_case (starship convention) and camelCase (also accepted by starship)
+# aliases are emitted so existing `style = "..."` references keep working.
+STARSHIP_PALETTE_KEYS: tuple[tuple[str, str], ...] = (
+    # ANSI 16-color slots
+    ("black",         "black"),
+    ("red",           "red"),
+    ("green",         "green"),
+    ("yellow",        "yellow"),
+    ("blue",          "blue"),
+    ("magenta",       "magenta"),
+    ("cyan",          "cyan"),
+    ("white",         "white"),
+    ("bright_black",  "bright_black"),
+    ("bright_red",    "bright_red"),
+    ("bright_green",  "bright_green"),
+    ("bright_yellow", "bright_yellow"),
+    ("bright_blue",   "bright_blue"),
+    ("bright_magenta","bright_magenta"),
+    ("bright_cyan",   "bright_cyan"),
+    ("bright_white",  "bright_white"),
+    # camelCase aliases (starship accepts both forms)
+    ("brightBlack",   "bright_black"),
+    ("brightRed",     "bright_red"),
+    ("brightGreen",   "bright_green"),
+    ("brightYellow",  "bright_yellow"),
+    ("brightBlue",    "bright_blue"),
+    ("brightMagenta", "bright_magenta"),
+    ("brightCyan",    "bright_cyan"),
+    ("brightWhite",   "bright_white"),
+    # Common synonyms
+    ("purple",        "magenta"),
+    ("gray",          "bright_black"),
+    ("grey",          "bright_black"),
+    # Caelestia extended slots
+    ("primary",       "primary"),
+    ("secondary",     "secondary"),
+    ("tertiary",      "tertiary"),
+    # Foreground / background — useful for `style = "fg"` references
+    ("fg",            "fg"),
+    ("bg",            "bg"),
+    ("cursor",        "cursor"),
+    ("selection",     "selection"),
+)
+
+
+def gen_starship_palette_block(t: Terminal) -> str:
+    # Resolve each palette key to a concrete hex value via the Terminal's
+    # ANSI slot properties.
+    resolver: dict[str, str] = {
+        "black": t.black, "red": t.red, "green": t.green, "yellow": t.yellow,
+        "blue": t.blue, "magenta": t.magenta, "cyan": t.cyan, "white": t.white,
+        "bright_black": t.bright_black, "bright_red": t.bright_red,
+        "bright_green": t.bright_green, "bright_yellow": t.bright_yellow,
+        "bright_blue": t.bright_blue, "bright_magenta": t.bright_magenta,
+        "bright_cyan": t.bright_cyan, "bright_white": t.bright_white,
+        "primary": t.primary, "secondary": t.secondary, "tertiary": t.tertiary,
+        "fg": t.fg, "bg": t.bg, "cursor": t.cursor, "selection": t.selection,
+    }
+    body = "\n".join(
+        f'{key} = "{hx(resolver[attr])}"'
+        for key, attr in STARSHIP_PALETTE_KEYS
+    )
+    return f"[palettes.caelestia]\n{body}"
+
+
+def update_starship(t: Terminal, dry_run: bool) -> None:
+    """Insert/replace the `[palettes.caelestia]` block and switch to it.
+
+    Preserves every other line of the user's starship.toml.
+    """
+    cfg = CONFIG_DIR / "starship.toml"
+    original = cfg.read_text(encoding="utf-8")
+
+    block = gen_starship_palette_block(t)
+    updated = replace_marked_block(original, "#", block)
+
+    # Ensure `palette = "caelestia"` (idempotent — replaces any existing
+    # `palette = "..."` assignment). `[ \t]*` not `\s*` so we don't swallow
+    # the trailing newline (which would eat a following blank line).
+    palette_assign_re = re.compile(
+        r'^palette[ \t]*=[ \t]*"[^"]*"[ \t]*$',
+        re.MULTILINE,
+    )
+    if palette_assign_re.search(updated):
+        updated = palette_assign_re.sub(
+            'palette = "caelestia"',
+            updated,
+            count=1,
+        )
+    else:
+        header_re = re.compile(
+            r'^(\$(?:schema|version|style)\s*=\s*[^\n]*\n|^[A-Za-z_]+\s*=\s*[^\n]*\n)*',
+            re.MULTILINE,
+        )
+        m = header_re.match(updated)
+        insert_at = m.end() if m else 0
+        updated = (
+            updated[:insert_at]
+            + 'palette = "caelestia"\n'
+            + updated[insert_at:]
+        )
+
+    write_text(cfg, updated, dry_run)
+
+
+# --------------------------------------------------------------------------- #
+# App drivers
+# --------------------------------------------------------------------------- #
+
+
+def _exists(path: Path) -> bool:
+    return path.exists()
+
+
+def apply_bat(t: Terminal, dry_run: bool) -> None:
+    target = CONFIG_DIR / "bat" / "themes" / "caelestia.tmTheme"
+    write_text(target, gen_bat(t), dry_run)
+
+    if dry_run:
+        return
+    # Rebuild the bat cache so the new theme is picked up. Failure is
+    # non-fatal — the theme file itself is still valid; the user can run
+    # `bat cache --build` manually.
+    bat = shutil.which("bat")
+    if not bat:
+        print("  warn: 'bat' not on PATH; skip cache rebuild")
+        return
+    try:
+        subprocess.run(
+            [bat, "cache", "--build"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        print("  rebuilt bat cache")
+    except OSError as e:
+        print(f"  warn: bat cache rebuild failed: {e}")
+
+
+def apply_atuin(t: Terminal, dry_run: bool) -> None:
+    target = CONFIG_DIR / "atuin" / "themes" / "caelestia.toml"
+    write_text(target, gen_atuin(t), dry_run)
+
+
+def apply_eza(t: Terminal, dry_run: bool) -> None:
+    target = CONFIG_DIR / "eza" / "theme.yml"
+    write_text(target, gen_eza(t), dry_run)
+
+
+def apply_lazygit(t: Terminal, dry_run: bool) -> None:
+    cfg = CONFIG_DIR / "lazygit" / "config.yml"
+    if not _exists(cfg):
+        # If the dir exists but the file doesn't, seed a minimal config so the
+        # surgical updater has something to operate on.
+        if _exists(cfg.parent) and not dry_run:
+            cfg.write_text("gui:\n", encoding="utf-8")
+        elif dry_run:
+            print(f"  [dry-run] would seed {cfg} with 'gui:\\n'")
+    update_lazygit(t, dry_run)
+
+
+def apply_starship(t: Terminal, dry_run: bool) -> None:
+    update_starship(t, dry_run)
+
+
+APPLIER: dict[str, Callable[[Terminal, bool], None]] = {
+    "bat": apply_bat,
+    "atuin": apply_atuin,
+    "eza": apply_eza,
+    "lazygit": apply_lazygit,
+    "starship": apply_starship,
+}
+
+
+# --------------------------------------------------------------------------- #
+# Scheme loading
+# --------------------------------------------------------------------------- #
+
+
+def load_scheme(path: Path) -> Terminal:
+    if not path.exists():
+        raise ColorizerError(f"scheme file not found: {path}")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise ColorizerError(f"invalid JSON in {path}: {e}") from e
+    colours = data.get("colours") if isinstance(data, dict) else None
+    if not isinstance(colours, dict):
+        raise ColorizerError(
+            f"{path}: expected top-level 'colours' object, got "
+            f"{type(colours).__name__ if colours is not None else 'missing key'}"
+        )
+    return build_terminal(colours)
+
+
+# --------------------------------------------------------------------------- #
+# CLI
+# --------------------------------------------------------------------------- #
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        prog="caelestia-colorizer",
+        description=(
+            "Apply the live Caelestia colorscheme to bat, atuin, eza, "
+            "lazygit, and starship. Skips apps whose config directory is "
+            "missing; individual apps can be excluded with --without-<app>."
+        ),
+    )
+    p.add_argument(
+        "--scheme",
+        type=Path,
+        default=SCHEME_DEFAULT,
+        help=f"Path to scheme.json (default: {SCHEME_DEFAULT})",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be written without modifying any files.",
+    )
+    for app in APPS:
+        p.add_argument(
+            f"--without-{app}",
+            action="store_true",
+            help=f"Skip applying colors to {app}.",
+        )
+    return p.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+
+    try:
+        terminal = load_scheme(args.scheme)
+    except ColorizerError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+
+    excluded = {app for app in APPS if getattr(args, f"without_{app.replace('-', '_')}")}
+
+    config_check = {
+        "bat": CONFIG_DIR / "bat",
+        "atuin": CONFIG_DIR / "atuin",
+        "eza": CONFIG_DIR / "eza",
+        "lazygit": CONFIG_DIR / "lazygit",
+        "starship": CONFIG_DIR / "starship.toml",
+    }
+
+    summary: list[tuple[str, str]] = []
+    for app in APPS:
+        if app in excluded:
+            summary.append((app, "skipped (--without)"))
+            continue
+        if not _exists(config_check[app]):
+            summary.append((app, "skipped (no config)"))
+            continue
+        print(f"[{app}]")
+        try:
+            APPLIER[app](terminal, args.dry_run)
+            summary.append((app, "applied"))
+        except (OSError, ColorizerError) as e:
+            summary.append((app, f"failed: {e}"))
+            print(f"  error: {e}", file=sys.stderr)
+
+    print()
+    width = max(len(app) for app in APPS)
+    print("summary:")
+    for app, status in summary:
+        print(f"  {app.ljust(width)}  {status}")
+
+    failed = [s for s in summary if s[1].startswith("failed")]
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

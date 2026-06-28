@@ -7,8 +7,8 @@ return {
 
 	-- Apps
 	terminal = "kitty",
-	browser = "zen-browser",
-	editor = "codium",
+	browser = "firefox",
+	editor = "code",
 	fileExplorer = "thunar",
 	audioSettings = "pavucontrol",
 

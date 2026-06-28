@@ -54,14 +54,15 @@ $gcloud\
 $custom\
 $status"""
 
-palette = "kanagawa_dragon"
+palette = "caelestia"
 
 [character]
-success_symbol = "[[󰄛](green) ➜](yellow)"
-error_symbol = "[[󰄛](red) ➜](yellow)"
+success_symbol = "[[󰄛](green)](yellow)"
+error_symbol = "[[󰄛](red)](yellow)"
 
 [directory]
-truncation_length = 8
+format = '[$path]($style)[$read_only]($read_only_style) ➜ '
+truncation_length = 16
 read_only = " 󰌾"
 truncation_symbol = '…/'
 style = 'bold purple'
@@ -224,16 +225,40 @@ pipestatus = true
 pipestatus_format = '[$pipestatus]($style)'
 pipestatus_separator = '|'
 
-[palettes.kanagawa_dragon]
-red = "#c4746e"
-purple = "#a292a3"
-brightRed = "#e46876"
-yellow = "#E6C384"
-brightYellow = "#c4b28a"
-green = "#87a987"
-brightCyan = "#7aa89f"
-cyan = "#8ea4a2"
-blue = "#7FB4CA"
-surface1 = "#45475a"
-surface0 = "#313244"
-white = "#c5c9c5"
+# >>> caelestia-colorizer (managed block) >>>
+[palettes.caelestia]
+black = "#343434"
+red = "#c8813a"
+green = "#f0c582"
+yellow = "#eae5e3"
+blue = "#b3ab8a"
+magenta = "#d69e77"
+cyan = "#e0c694"
+white = "#d8d8d8"
+bright_black = "#a3a3a3"
+bright_red = "#e99641"
+bright_green = "#eddac1"
+bright_yellow = "#f4f4f4"
+bright_blue = "#c6c0b6"
+bright_magenta = "#e2b696"
+bright_cyan = "#f1d8ac"
+bright_white = "#ffffff"
+brightBlack = "#a3a3a3"
+brightRed = "#e99641"
+brightGreen = "#eddac1"
+brightYellow = "#f4f4f4"
+brightBlue = "#c6c0b6"
+brightMagenta = "#e2b696"
+brightCyan = "#f1d8ac"
+brightWhite = "#ffffff"
+purple = "#d69e77"
+gray = "#a3a3a3"
+grey = "#a3a3a3"
+primary = "#c7c7c7"
+secondary = "#9d9d9d"
+tertiary = "#f7f7f7"
+fg = "#e6e6e6"
+bg = "#0e0e0e"
+cursor = "#9d9d9d"
+selection = "#9d9d9d"
+# <<< caelestia-colorizer (managed block) <<<
